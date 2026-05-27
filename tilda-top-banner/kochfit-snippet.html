@@ -1,4 +1,4 @@
-<!-- Вставить целиком в блок T123 (HTML) на странице kochfit.ru -->
+<!-- Блок T123 — плашка VK (Zero Block rec2317813501). Cookie-скрипт не трогаем. -->
 <style>
 #rec2317813501 {
   position: fixed !important;
@@ -62,7 +62,6 @@
   }
 }
 
-/* Только крестик этого блока — без общего класса top-banner-close */
 #rec2317813501 [data-elem-id="1779882150069"] {
   z-index: 200 !important;
   pointer-events: auto !important;
@@ -82,8 +81,30 @@
   var REC_ID = '2317813501';
   var SHOW_DURATION = 15000;
   var STORAGE_KEY = 'kochfit_top_banner_closed';
-  /* Только ID крестика внутри этого rec — не используем общие классы */
   var CLOSE_SELECTOR = '#rec2317813501 [data-elem-id="1779882150069"]';
+
+  /*
+   * Cookie-скрипт вешает click на document (capture) и закрывает куки
+   * при ЛЮБОМ клике. Этот обработчик регистрируется сразу при загрузке
+   * скрипта — раньше cookie (DOMContentLoaded + 100ms) — и гасит клик
+   * по крестику до того, как cookie его получит.
+   */
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest || !e.target.closest(CLOSE_SELECTOR)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    var rec = document.getElementById('rec' + REC_ID);
+    if (rec) {
+      rec.classList.remove('top-banner--visible');
+      rec.classList.add('top-banner--hiding');
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, '1');
+    } catch (err) {}
+  }, true);
 
   function wasClosedByUser() {
     try {
@@ -91,16 +112,6 @@
     } catch (e) {
       return false;
     }
-  }
-
-  function markClosedByUser() {
-    try {
-      localStorage.setItem(STORAGE_KEY, '1');
-    } catch (e) {}
-  }
-
-  function getCloseEl(target) {
-    return target && target.closest ? target.closest(CLOSE_SELECTOR) : null;
   }
 
   function initTopBanner() {
@@ -119,13 +130,12 @@
     var hideTimer = null;
     var isHidden = false;
 
-    function hideBanner(saveChoice) {
+    function hideBanner() {
       if (isHidden) return;
       isHidden = true;
       if (hideTimer) clearTimeout(hideTimer);
       rec.classList.remove('top-banner--visible');
       rec.classList.add('top-banner--hiding');
-      if (saveChoice) markClosedByUser();
     }
 
     function showBanner() {
@@ -136,17 +146,8 @@
           rec.classList.add('top-banner--visible');
         });
       });
-      hideTimer = setTimeout(function () {
-        hideBanner(false);
-      }, SHOW_DURATION);
+      hideTimer = setTimeout(hideBanner, SHOW_DURATION);
     }
-
-    rec.addEventListener('click', function (e) {
-      if (!getCloseEl(e.target)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      hideBanner(true);
-    }, true);
 
     showBanner();
   }
