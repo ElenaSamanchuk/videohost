@@ -1,52 +1,87 @@
-<!-- Вставить целиком в блок T123 (HTML) на странице -->
+<!-- Вставить целиком в блок T123 (HTML) на странице kochfit.ru -->
 <style>
 #rec2317813501 {
   position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   z-index: 1000001 !important;
-  transform: translateY(-110%);
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
   will-change: transform;
 }
 
-#rec2317813501.top-banner--visible {
-  transform: translateY(0);
-  pointer-events: auto;
+/* Мобилка: сверху, на всю ширину */
+@media screen and (max-width: 768px) {
+  #rec2317813501 {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    transform: translateY(-110%);
+  }
+
+  #rec2317813501.top-banner--visible {
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  #rec2317813501.top-banner--hiding {
+    transform: translateY(-110%);
+    pointer-events: none;
+  }
 }
 
-#rec2317813501.top-banner--hiding {
-  transform: translateY(-110%);
-  pointer-events: none;
+/* Десктоп: слева, ниже верхнего края */
+@media screen and (min-width: 769px) {
+  #rec2317813501 {
+    top: 100px !important;
+    left: 16px !important;
+    right: auto !important;
+    width: auto !important;
+    max-width: calc(100vw - 32px) !important;
+    transform: translateX(calc(-100% - 24px));
+  }
+
+  #rec2317813501.top-banner--visible {
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  #rec2317813501.top-banner--hiding {
+    transform: translateX(calc(-100% - 24px));
+    pointer-events: none;
+  }
 }
 
-/* Крестик: на десктопе в Zero Block он уехал за экран — возвращаем */
 #rec2317813501 .tn-elem[data-elem-id="1779798129533000006"],
 #rec2317813501 .top-banner-close {
-  top: 12px !important;
-  left: auto !important;
-  right: 16px !important;
-  width: 32px !important;
-  height: 32px !important;
   z-index: 10 !important;
   cursor: pointer;
 }
 
-#rec2317813501 .tn-elem[data-elem-id="1779798129533000006"] .tn-atom {
+#rec2317813501 .tn-elem[data-elem-id="1779798129533000006"] .tn-atom,
+#rec2317813501 .top-banner-close .tn-atom {
   pointer-events: auto;
   cursor: pointer;
 }
 
-@media screen and (max-width: 479px) {
+@media screen and (min-width: 769px) {
+  #rec2317813501 .tn-elem[data-elem-id="1779798129533000006"],
+  #rec2317813501 .top-banner-close {
+    top: 12px !important;
+    left: auto !important;
+    right: 16px !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
   #rec2317813501 .tn-elem[data-elem-id="1779798129533000006"],
   #rec2317813501 .top-banner-close {
     top: 8px !important;
+    left: auto !important;
     right: 10px !important;
     width: 24px !important;
     height: 24px !important;
@@ -59,18 +94,33 @@
   'use strict';
 
   var REC_ID = '2317813501';
-  var SHOW_DURATION = 5000;
+  var SHOW_DURATION = 15000;
+  var STORAGE_KEY = 'kochfit_top_banner_closed';
   var CLOSE_SELECTOR = '.top-banner-close, [data-elem-id="1779798129533000006"]';
 
+  function wasClosedByUser() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function markClosedByUser() {
+    try {
+      localStorage.setItem(STORAGE_KEY, '1');
+    } catch (e) {}
+  }
+
   function initTopBanner() {
+    if (wasClosedByUser()) return;
+
     var rec = document.getElementById('rec' + REC_ID);
     if (!rec || rec.getAttribute('data-top-banner-ready') === '1') return;
     rec.setAttribute('data-top-banner-ready', '1');
 
-    /* fixed над всем контентом */
     document.body.appendChild(rec);
 
-    /* отключаем встроенную анимацию Tilda внутри блока */
     rec.querySelectorAll('.t-animate').forEach(function (el) {
       el.classList.remove('t-animate');
     });
@@ -78,17 +128,20 @@
     var hideTimer = null;
     var isHidden = false;
 
-    function hideBanner() {
+    function hideBanner(saveChoice) {
       if (isHidden) return;
       isHidden = true;
       if (hideTimer) clearTimeout(hideTimer);
       rec.classList.remove('top-banner--visible');
       rec.classList.add('top-banner--hiding');
+      if (saveChoice) markClosedByUser();
     }
 
     function showBanner() {
       rec.classList.add('top-banner--visible');
-      hideTimer = setTimeout(hideBanner, SHOW_DURATION);
+      hideTimer = setTimeout(function () {
+        hideBanner(false);
+      }, SHOW_DURATION);
     }
 
     showBanner();
@@ -104,7 +157,7 @@
       closeEl.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        hideBanner();
+        hideBanner(true);
       }, true);
 
       closeEl.addEventListener('mousedown', function (e) {
