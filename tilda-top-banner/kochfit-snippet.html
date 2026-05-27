@@ -1,0 +1,129 @@
+<!-- Вставить целиком в блок T123 (HTML) на странице -->
+<style>
+#rec2317813501 {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 1000001 !important;
+  transform: translateY(-110%);
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  will-change: transform;
+}
+
+#rec2317813501.top-banner--visible {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+#rec2317813501.top-banner--hiding {
+  transform: translateY(-110%);
+  pointer-events: none;
+}
+
+/* Крестик: на десктопе в Zero Block он уехал за экран — возвращаем */
+#rec2317813501 .tn-elem[data-elem-id="1779798129533000006"],
+#rec2317813501 .top-banner-close {
+  top: 12px !important;
+  left: auto !important;
+  right: 16px !important;
+  width: 32px !important;
+  height: 32px !important;
+  z-index: 10 !important;
+  cursor: pointer;
+}
+
+#rec2317813501 .tn-elem[data-elem-id="1779798129533000006"] .tn-atom {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@media screen and (max-width: 479px) {
+  #rec2317813501 .tn-elem[data-elem-id="1779798129533000006"],
+  #rec2317813501 .top-banner-close {
+    top: 8px !important;
+    right: 10px !important;
+    width: 24px !important;
+    height: 24px !important;
+  }
+}
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  var REC_ID = '2317813501';
+  var SHOW_DURATION = 5000;
+  var CLOSE_SELECTOR = '.top-banner-close, [data-elem-id="1779798129533000006"]';
+
+  function initTopBanner() {
+    var rec = document.getElementById('rec' + REC_ID);
+    if (!rec || rec.getAttribute('data-top-banner-ready') === '1') return;
+    rec.setAttribute('data-top-banner-ready', '1');
+
+    /* fixed над всем контентом */
+    document.body.appendChild(rec);
+
+    /* отключаем встроенную анимацию Tilda внутри блока */
+    rec.querySelectorAll('.t-animate').forEach(function (el) {
+      el.classList.remove('t-animate');
+    });
+
+    var hideTimer = null;
+    var isHidden = false;
+
+    function hideBanner() {
+      if (isHidden) return;
+      isHidden = true;
+      if (hideTimer) clearTimeout(hideTimer);
+      rec.classList.remove('top-banner--visible');
+      rec.classList.add('top-banner--hiding');
+    }
+
+    function showBanner() {
+      rec.classList.add('top-banner--visible');
+      hideTimer = setTimeout(hideBanner, SHOW_DURATION);
+    }
+
+    showBanner();
+
+    var closeEl = rec.querySelector(CLOSE_SELECTOR);
+    if (closeEl) {
+      var closeLink = closeEl.tagName === 'A' ? closeEl : closeEl.querySelector('a');
+      if (closeLink) {
+        closeLink.removeAttribute('href');
+        closeLink.removeAttribute('target');
+      }
+
+      closeEl.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideBanner();
+      }, true);
+
+      closeEl.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }, true);
+    }
+  }
+
+  if (typeof window.t_onReady === 'function') {
+    window.t_onReady(function () {
+      setTimeout(initTopBanner, 400);
+    });
+  } else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(initTopBanner, 400);
+    });
+  } else {
+    setTimeout(initTopBanner, 400);
+  }
+})();
+</script>
