@@ -79,31 +79,33 @@
   'use strict';
 
   var REC_ID = '2317813501';
+  var BANNER_SELECTOR = '#rec2317813501';
   var SHOW_DURATION = 15000;
   var STORAGE_KEY = 'kochfit_top_banner_closed';
-  var CLOSE_SELECTOR = '#rec2317813501 [data-elem-id="1779882150069"]';
+  var CLOSE_SELECTOR = BANNER_SELECTOR + ' [data-elem-id="1779882150069"]';
 
   /*
-   * Cookie-скрипт вешает click на document (capture) и закрывает куки
-   * при ЛЮБОМ клике. Этот обработчик регистрируется сразу при загрузке
-   * скрипта — раньше cookie (DOMContentLoaded + 100ms) — и гасит клик
-   * по крестику до того, как cookie его получит.
+   * Cookie-скрипт: document.addEventListener('click', ..., true) на любой клик.
+   * Этот обработчик регистрируется сразу (раньше cookie) и для ЛЮБОГО клика
+   * по плашке вызывает stopImmediatePropagation — cookie не получает событие.
+   * stopPropagation НЕ вызываем — ссылки VK внутри плашки продолжают работать.
    */
   document.addEventListener('click', function (e) {
-    if (!e.target.closest || !e.target.closest(CLOSE_SELECTOR)) return;
+    if (!e.target.closest || !e.target.closest(BANNER_SELECTOR)) return;
 
-    e.preventDefault();
-    e.stopPropagation();
     e.stopImmediatePropagation();
 
-    var rec = document.getElementById('rec' + REC_ID);
-    if (rec) {
-      rec.classList.remove('top-banner--visible');
-      rec.classList.add('top-banner--hiding');
+    if (e.target.closest(CLOSE_SELECTOR)) {
+      e.preventDefault();
+      var rec = document.getElementById('rec' + REC_ID);
+      if (rec) {
+        rec.classList.remove('top-banner--visible');
+        rec.classList.add('top-banner--hiding');
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, '1');
+      } catch (err) {}
     }
-    try {
-      localStorage.setItem(STORAGE_KEY, '1');
-    } catch (err) {}
   }, true);
 
   function wasClosedByUser() {
