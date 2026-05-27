@@ -1,0 +1,32 @@
+/* Замените 123456789 на ID вашего Zero Block (число из #rec123456789) */
+#rec123456789 {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  z-index: 1000001 !important;
+  transform: translateY(-110%);
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  will-change: transform;
+}
+
+#rec123456789.top-banner--visible {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+#rec123456789.top-banner--hiding {
+  transform: translateY(-110%);
+  pointer-events: none;
+}
+
+/* Крестик — отдельный слой поверх ссылки */
+#rec123456789 .top-banner-close {
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+}
