@@ -5,12 +5,22 @@
   margin: 0 !important;
   padding: 0 !important;
   z-index: 1000001 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: visible !important;
   transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
   will-change: transform;
 }
 
-/* Мобилка: сверху, на всю ширину */
+#rec2317813501 .t396,
+#rec2317813501 .t396__artboard,
+#rec2317813501 .t396__carrier,
+#rec2317813501 .t396__filter {
+  overflow: visible !important;
+}
+
+/* Мобилка: сверху */
 @media screen and (max-width: 768px) {
   #rec2317813501 {
     top: 0 !important;
@@ -18,74 +28,53 @@
     right: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
-    transform: translateY(-110%);
+    transform: translate3d(0, -110%, 0);
   }
 
   #rec2317813501.top-banner--visible {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
     pointer-events: auto;
   }
 
   #rec2317813501.top-banner--hiding {
-    transform: translateY(-110%);
+    transform: translate3d(0, -110%, 0);
     pointer-events: none;
   }
 }
 
-/* Десктоп: слева, ниже верхнего края */
+/* Десктоп: слева, ниже шапки */
 @media screen and (min-width: 769px) {
   #rec2317813501 {
-    top: 100px !important;
+    top: 96px !important;
     left: 16px !important;
     right: auto !important;
-    width: auto !important;
+    width: 1200px !important;
     max-width: calc(100vw - 32px) !important;
-    transform: translateX(calc(-100% - 24px));
+    transform: translate3d(calc(-100% - 32px), 0, 0);
   }
 
   #rec2317813501.top-banner--visible {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
     pointer-events: auto;
   }
 
   #rec2317813501.top-banner--hiding {
-    transform: translateX(calc(-100% - 24px));
+    transform: translate3d(calc(-100% - 32px), 0, 0);
     pointer-events: none;
   }
 }
 
-#rec2317813501 .tn-elem[data-elem-id="1779798129533000006"],
+/* Крестик: elem 1779882150069 (cross_bold.svg) */
+#rec2317813501 .tn-elem[data-elem-id="1779882150069"],
 #rec2317813501 .top-banner-close {
-  z-index: 10 !important;
-  cursor: pointer;
+  z-index: 200 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
-#rec2317813501 .tn-elem[data-elem-id="1779798129533000006"] .tn-atom,
-#rec2317813501 .top-banner-close .tn-atom {
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-@media screen and (min-width: 769px) {
-  #rec2317813501 .tn-elem[data-elem-id="1779798129533000006"],
-  #rec2317813501 .top-banner-close {
-    top: 12px !important;
-    left: auto !important;
-    right: 16px !important;
-    width: 32px !important;
-    height: 32px !important;
-  }
-}
-
-@media screen and (max-width: 768px) {
-  #rec2317813501 .tn-elem[data-elem-id="1779798129533000006"],
-  #rec2317813501 .top-banner-close {
-    top: 8px !important;
-    left: auto !important;
-    right: 10px !important;
-    width: 24px !important;
-    height: 24px !important;
-  }
+#rec2317813501 .tn-elem[data-elem-id="1779882150069"] .tn-atom {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 </style>
 
@@ -96,7 +85,7 @@
   var REC_ID = '2317813501';
   var SHOW_DURATION = 15000;
   var STORAGE_KEY = 'kochfit_top_banner_closed';
-  var CLOSE_SELECTOR = '.top-banner-close, [data-elem-id="1779798129533000006"]';
+  var CLOSE_SELECTOR = '[data-elem-id="1779882150069"], .top-banner-close';
 
   function wasClosedByUser() {
     try {
@@ -112,14 +101,18 @@
     } catch (e) {}
   }
 
+  function isCloseTarget(node) {
+    return node && node.closest && node.closest(CLOSE_SELECTOR);
+  }
+
   function initTopBanner() {
     if (wasClosedByUser()) return;
 
     var rec = document.getElementById('rec' + REC_ID);
     if (!rec || rec.getAttribute('data-top-banner-ready') === '1') return;
-    rec.setAttribute('data-top-banner-ready', '1');
+    if (!rec.querySelector('.t396__artboard')) return;
 
-    document.body.appendChild(rec);
+    rec.setAttribute('data-top-banner-ready', '1');
 
     rec.querySelectorAll('.t-animate').forEach(function (el) {
       el.classList.remove('t-animate');
@@ -138,45 +131,38 @@
     }
 
     function showBanner() {
-      rec.classList.add('top-banner--visible');
+      rec.classList.remove('top-banner--visible', 'top-banner--hiding');
+      void rec.offsetWidth;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          rec.classList.add('top-banner--visible');
+        });
+      });
       hideTimer = setTimeout(function () {
         hideBanner(false);
       }, SHOW_DURATION);
     }
 
+    rec.addEventListener('click', function (e) {
+      if (!isCloseTarget(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      hideBanner(true);
+    }, true);
+
     showBanner();
+  }
 
-    var closeEl = rec.querySelector(CLOSE_SELECTOR);
-    if (closeEl) {
-      var closeLink = closeEl.tagName === 'A' ? closeEl : closeEl.querySelector('a');
-      if (closeLink) {
-        closeLink.removeAttribute('href');
-        closeLink.removeAttribute('target');
-      }
-
-      closeEl.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        hideBanner(true);
-      }, true);
-
-      closeEl.addEventListener('mousedown', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }, true);
-    }
+  function boot() {
+    setTimeout(initTopBanner, 500);
   }
 
   if (typeof window.t_onReady === 'function') {
-    window.t_onReady(function () {
-      setTimeout(initTopBanner, 400);
-    });
+    window.t_onReady(boot);
   } else if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      setTimeout(initTopBanner, 400);
-    });
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    setTimeout(initTopBanner, 400);
+    boot();
   }
 })();
 </script>
