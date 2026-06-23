@@ -127,6 +127,26 @@ export function youtubeEmbedUrl(url: string, autoplay = false) {
   return `https://www.youtube.com/embed/${id}?${params.toString()}`;
 }
 
+function normalizeStreamUrl(url: string) {
+  const absolute = url.startsWith('//') ? `https:${url}` : url.startsWith('http') ? url : `https://${url}`;
+  return absolute.replace(/^http:\/\//i, 'https://');
+}
+
+function nativeFormatScore(streamUrl: string | null) {
+  if (!streamUrl) return 0;
+  if (/\.mp4(\?|$)/i.test(streamUrl)) return 3;
+  if (/\.webm(\?|$)/i.test(streamUrl)) return 2;
+  if (/\.mov(\?|$)/i.test(streamUrl)) return 1;
+  return 1;
+}
+
+function clipScore(item: MediaItem, typePriority: string[]) {
+  const typeIndex = typePriority.indexOf(item.type);
+  const typeScore = typeIndex >= 0 ? typePriority.length - typeIndex : 0;
+  if (item.embedUrl) return typeScore * 10 + 5;
+  return typeScore * 10 + nativeFormatScore(item.streamUrl);
+}
+
 function isNativeStreamUrl(url: string) {
   if (/\.(mp4|mov|webm)(\?|$)/i.test(url)) return true;
   return url.includes('trailers.s3.mds.yandex.net') || url.includes('pdl.warnerbros.com');
@@ -154,7 +174,7 @@ export function normalizeMediaItems(items: RawVideoItem[] = []): MediaItem[] {
         embedUrl = youtubeEmbedUrl(url);
       } else if (native) {
         kind = 'native';
-        streamUrl = url.startsWith('http') ? url : `https:${url}`;
+        streamUrl = normalizeStreamUrl(url);
       }
 
       return {
@@ -174,19 +194,10 @@ export function normalizeMediaItems(items: RawVideoItem[] = []): MediaItem[] {
 }
 
 export function pickDefaultClip(items: MediaItem[]) {
+  if (!items.length) return null;
+
   const priority = ['TRAILER', 'TEASER', 'FEATURETTE', 'CLIP', 'VIDEO'];
-  for (const type of priority) {
-    const match = items.find((item) => item.type === type && item.kind === 'native' && item.streamUrl);
-    if (match) return match;
-  }
-  for (const type of priority) {
-    const match = items.find((item) => item.type === type && item.embedUrl);
-    if (match) return match;
-  }
-  return items.find((item) => item.kind === 'native' && item.streamUrl)
-    ?? items.find((item) => item.embedUrl)
-    ?? items[0]
-    ?? null;
+  return [...items].sort((a, b) => clipScore(b, priority) - clipScore(a, priority))[0] ?? null;
 }
 
 export function watchlistKey() {
