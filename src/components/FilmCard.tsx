@@ -10,17 +10,19 @@ type Props = {
 export function FilmCard({ film, onRemove }: Props) {
   const tone = ratingTone(film.rating);
   const title = filmTitle(film);
+  const poster = film.posterUrlPreview || film.posterUrl;
 
   return (
     <div className="relative">
       <Link to={`/watch/${film.filmId}`} className="film-card block">
         <div className="relative">
-          <img
-            src={film.posterUrlPreview || film.posterUrl || ''}
-            alt=""
-            className="film-card__poster"
-            loading="lazy"
-          />
+          {poster ? (
+            <img src={poster} alt="" className="film-card__poster" loading="lazy" />
+          ) : (
+            <div className="film-card__poster flex items-center justify-center bg-surface px-4 text-center text-xs text-muted">
+              {title}
+            </div>
+          )}
           <div className="film-card__overlay" />
           <div className="film-card__play">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur px-4 py-2 text-sm font-medium ring-1 ring-white/20">

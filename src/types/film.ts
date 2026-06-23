@@ -51,4 +51,9 @@ export type FilmStream = {
   posterUrl?: string;
 };
 
+export type WatchlistEntry = {
+  filmId: number;
+  snapshot: FilmPreview;
+};
+
 export type WatchMode = 'film' | 'clips';

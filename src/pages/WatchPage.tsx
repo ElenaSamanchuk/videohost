@@ -15,6 +15,7 @@ import {
   pickDefaultClip,
   ratingTone,
   toggleWatchlist,
+  upsertWatchlistSnapshot,
 } from '../lib/api';
 import type { MediaItem, WatchMode } from '../types/film';
 
@@ -84,6 +85,12 @@ export function WatchPage() {
   }, [numericId]);
 
   useEffect(() => {
+    if (film && isInWatchlist(film.filmId)) {
+      upsertWatchlistSnapshot(film);
+    }
+  }, [film]);
+
+  useEffect(() => {
     if (watchMode === 'film' && !filmStreamQuery.isLoading && !filmStreamQuery.data && allClips.length) {
       setWatchMode('clips');
     }
@@ -135,8 +142,8 @@ export function WatchPage() {
               type="button"
               className="btn-secondary"
               onClick={() => {
-                if (!Number.isFinite(numericId)) return;
-                toggleWatchlist(numericId);
+                if (!Number.isFinite(numericId) || !film) return;
+                toggleWatchlist(numericId, film);
                 setSaved(isInWatchlist(numericId));
               }}
             >

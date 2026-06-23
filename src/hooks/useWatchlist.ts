@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { readWatchlist, removeFromWatchlist, toggleWatchlist as toggleInStorage } from '../lib/api';
+import type { FilmPreview, WatchlistEntry } from '../types/film';
+import {
+  readWatchlistEntries,
+  removeFromWatchlist,
+  toggleWatchlist as toggleInStorage,
+} from '../lib/api';
 
 export function useWatchlist() {
-  const [ids, setIds] = useState<number[]>(() => readWatchlist());
+  const [entries, setEntries] = useState<WatchlistEntry[]>(() => readWatchlistEntries());
 
   useEffect(() => {
-    const sync = () => setIds(readWatchlist());
+    const sync = () => setEntries(readWatchlistEntries());
     window.addEventListener('videohost-watchlist-change', sync);
     window.addEventListener('storage', sync);
     return () => {
@@ -14,15 +19,21 @@ export function useWatchlist() {
     };
   }, []);
 
-  const toggle = useCallback((filmId: number) => {
-    toggleInStorage(filmId);
-    setIds(readWatchlist());
+  const toggle = useCallback((filmId: number, snapshot?: FilmPreview) => {
+    toggleInStorage(filmId, snapshot);
+    setEntries(readWatchlistEntries());
   }, []);
 
   const remove = useCallback((filmId: number) => {
     removeFromWatchlist(filmId);
-    setIds(readWatchlist());
+    setEntries(readWatchlistEntries());
   }, []);
 
-  return { ids, toggle, remove, count: ids.length };
+  return {
+    entries,
+    ids: entries.map((entry) => entry.filmId),
+    toggle,
+    remove,
+    count: entries.length,
+  };
 }

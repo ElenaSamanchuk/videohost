@@ -1,4 +1,4 @@
-import type { Country, FilmDetails, FilmPreview, Genre, MediaItem, RawVideoItem } from '../types/film';
+import type { Country, FilmDetails, FilmPreview, Genre, MediaItem, RawVideoItem, WatchlistEntry } from '../types/film';
 
 const API_BASE = 'https://kinopoiskapiunofficial.tech';
 
@@ -215,32 +215,85 @@ export function watchlistKey() {
   return 'videohost-watchlist';
 }
 
-export function readWatchlist(): number[] {
+function parseWatchlistEntries(raw: string | null): WatchlistEntry[] {
+  if (!raw) return [];
+
   try {
-    const raw = localStorage.getItem(watchlistKey());
-    if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'number') : [];
+    if (!Array.isArray(parsed)) return [];
+
+    if (parsed.every((item) => typeof item === 'number')) {
+      return parsed.map((filmId) => ({
+        filmId,
+        snapshot: { filmId },
+      }));
+    }
+
+    return parsed.flatMap((item) => {
+      if (!item || typeof item !== 'object') return [];
+      const entry = item as Partial<WatchlistEntry>;
+      if (typeof entry.filmId !== 'number') return [];
+
+      return [
+        {
+          filmId: entry.filmId,
+          snapshot: {
+            filmId: entry.filmId,
+            ...(entry.snapshot ?? {}),
+          },
+        },
+      ];
+    });
   } catch {
     return [];
   }
 }
 
-export function removeFromWatchlist(filmId: number) {
-  const next = readWatchlist().filter((id) => id !== filmId);
-  localStorage.setItem(watchlistKey(), JSON.stringify(next));
+function writeWatchlistEntries(entries: WatchlistEntry[]) {
+  localStorage.setItem(watchlistKey(), JSON.stringify(entries));
   window.dispatchEvent(new Event('videohost-watchlist-change'));
-  return next;
 }
 
-export function toggleWatchlist(filmId: number) {
-  const current = readWatchlist();
-  const next = current.includes(filmId)
-    ? current.filter((id) => id !== filmId)
-    : [...current, filmId];
-  localStorage.setItem(watchlistKey(), JSON.stringify(next));
-  window.dispatchEvent(new Event('videohost-watchlist-change'));
-  return next;
+export function readWatchlistEntries(): WatchlistEntry[] {
+  return parseWatchlistEntries(localStorage.getItem(watchlistKey()));
+}
+
+export function readWatchlist(): number[] {
+  return readWatchlistEntries().map((entry) => entry.filmId);
+}
+
+export function removeFromWatchlist(filmId: number) {
+  const next = readWatchlistEntries().filter((entry) => entry.filmId !== filmId);
+  writeWatchlistEntries(next);
+  return next.map((entry) => entry.filmId);
+}
+
+export function toggleWatchlist(filmId: number, snapshot?: FilmPreview) {
+  const entries = readWatchlistEntries();
+  const exists = entries.some((entry) => entry.filmId === filmId);
+
+  const next = exists
+    ? entries.filter((entry) => entry.filmId !== filmId)
+    : [
+        ...entries,
+        {
+          filmId,
+          snapshot: snapshot ?? { filmId },
+        },
+      ];
+
+  writeWatchlistEntries(next);
+  return next.map((entry) => entry.filmId);
+}
+
+export function upsertWatchlistSnapshot(film: FilmPreview) {
+  const entries = readWatchlistEntries();
+  const index = entries.findIndex((entry) => entry.filmId === film.filmId);
+  if (index < 0) return readWatchlist();
+
+  entries[index] = { filmId: film.filmId, snapshot: { ...entries[index].snapshot, ...film } };
+  writeWatchlistEntries(entries);
+  return entries.map((entry) => entry.filmId);
 }
 
 export function isInWatchlist(filmId: number) {
