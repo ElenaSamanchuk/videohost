@@ -1,4 +1,4 @@
-import type { Country, FilmPreview, Genre, RawVideoItem } from '../types/film';
+import type { Country, FilmDetails, FilmPreview, Genre, MediaItem, RawVideoItem } from '../types/film';
 
 const API_BASE = 'https://kinopoiskapiunofficial.tech';
 
@@ -8,9 +8,7 @@ function apiKey() {
 
 async function kinopoiskFetch<T>(path: string): Promise<T> {
   const key = apiKey();
-  if (!key) {
-    throw new Error('API key missing');
-  }
+  if (!key) throw new Error('API key missing');
 
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -40,9 +38,7 @@ export function searchFilms(keyword: string) {
 }
 
 export function fetchFilmDetails(id: number | string) {
-  return kinopoiskFetch<FilmPreview & { webUrl?: string; filmLength?: number; slogan?: string }>(
-    `/api/v2.2/films/${id}`,
-  );
+  return kinopoiskFetch<FilmDetails>(`/api/v2.2/films/${id}`);
 }
 
 export function fetchFilmVideos(id: number | string) {
@@ -51,6 +47,10 @@ export function fetchFilmVideos(id: number | string) {
 
 export function filmTitle(film: Pick<FilmPreview, 'nameRu' | 'nameEn' | 'nameOriginal'>) {
   return film.nameRu || film.nameEn || film.nameOriginal || 'Без названия';
+}
+
+export function filmSearchTitles(film: Pick<FilmPreview, 'nameRu' | 'nameEn' | 'nameOriginal'>) {
+  return [film.nameEn, film.nameOriginal, film.nameRu].filter(Boolean) as string[];
 }
 
 export function formatGenres(genres: Genre[] = []) {
@@ -75,6 +75,7 @@ const VIDEO_TYPE_LABELS: Record<string, string> = {
   CLIP: 'Клип',
   REVIEW: 'Обзор',
   SHORT: 'Короткометражка',
+  VIDEO: 'Видео',
 };
 
 export function videoTypeLabel(type?: string) {
@@ -82,56 +83,100 @@ export function videoTypeLabel(type?: string) {
   return VIDEO_TYPE_LABELS[type] ?? type;
 }
 
-export function youtubeEmbedUrl(url: string, autoplay = false) {
+function extractYoutubeId(url: string) {
   try {
     const parsed = new URL(url);
-    let id: string | null = null;
-
-    if (parsed.hostname.includes('youtube.com')) {
-      id = parsed.searchParams.get('v');
-    } else if (parsed.hostname === 'youtu.be') {
-      id = parsed.pathname.replace('/', '');
+    if (!parsed.hostname.includes('youtube.com') && parsed.hostname !== 'youtu.be') {
+      return null;
     }
 
-    if (!id) return null;
-    const params = new URLSearchParams({
-      rel: '0',
-      modestbranding: '1',
-      ...(autoplay ? { autoplay: '1' } : {}),
-    });
-    return `https://www.youtube.com/embed/${id}?${params.toString()}`;
+    if (parsed.hostname === 'youtu.be') {
+      return parsed.pathname.replace('/', '') || null;
+    }
+
+    const fromQuery = parsed.searchParams.get('v');
+    if (fromQuery) return fromQuery;
+
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const embedIndex = parts.indexOf('embed');
+    if (embedIndex >= 0 && parts[embedIndex + 1]) return parts[embedIndex + 1];
+
+    const vIndex = parts.indexOf('v');
+    if (vIndex >= 0 && parts[vIndex + 1]) return parts[vIndex + 1];
+
+    return null;
   } catch {
     return null;
   }
 }
 
-export function normalizeVideos(items: RawVideoItem[] = []) {
+export function youtubeEmbedUrl(url: string, autoplay = false) {
+  const id = extractYoutubeId(url);
+  if (!id) return null;
+
+  const params = new URLSearchParams({
+    rel: '0',
+    modestbranding: '1',
+    playsinline: '1',
+    ...(autoplay ? { autoplay: '1' } : {}),
+  });
+
+  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
+}
+
+function isNativeStreamUrl(url: string) {
+  if (/\.(mp4|mov|webm)(\?|$)/i.test(url)) return true;
+  return url.includes('trailers.s3.mds.yandex.net') || url.includes('pdl.warnerbros.com');
+}
+
+function isBlockedUrl(url: string) {
+  return /\.flv(\?|$)/i.test(url) || url.includes('filmz.ru/videos/files/download');
+}
+
+export function normalizeMediaItems(items: RawVideoItem[] = []): MediaItem[] {
   return items
-    .filter((item) => item.url)
+    .filter((item) => item.url && !isBlockedUrl(item.url))
     .map((item, index) => {
       const url = item.url!;
-      const embedUrl = item.site === 'YOUTUBE' ? youtubeEmbedUrl(url) : null;
       const type = item.filmVideoType ?? 'VIDEO';
+      const youtubeId = extractYoutubeId(url);
+      const native = isNativeStreamUrl(url);
+
+      let kind: MediaItem['kind'] = 'native';
+      let embedUrl: string | null = null;
+      let streamUrl: string | null = null;
+
+      if (youtubeId || item.site?.toUpperCase() === 'YOUTUBE') {
+        kind = 'youtube';
+        embedUrl = youtubeEmbedUrl(url);
+      } else if (native) {
+        kind = 'native';
+        streamUrl = url.startsWith('http') ? url : `https:${url}`;
+      }
+
       return {
         id: `${type}-${index}-${url}`,
         title: item.name?.trim() || videoTypeLabel(type),
         url,
+        kind,
         embedUrl,
+        streamUrl,
         type,
         typeLabel: videoTypeLabel(type),
-        site: item.site ?? 'UNKNOWN',
+        site: item.site ?? (youtubeId ? 'YOUTUBE' : 'NATIVE'),
+        source: 'kinopoisk' as const,
       };
     })
-    .filter((item) => item.embedUrl);
+    .filter((item) => item.embedUrl || item.streamUrl);
 }
 
-export function pickDefaultVideo(videos: ReturnType<typeof normalizeVideos>) {
-  const priority = ['TRAILER', 'TEASER', 'FEATURETTE', 'CLIP', 'REVIEW'];
+export function pickDefaultClip(items: MediaItem[]) {
+  const priority = ['TRAILER', 'TEASER', 'FEATURETTE', 'CLIP', 'VIDEO'];
   for (const type of priority) {
-    const match = videos.find((video) => video.type === type);
+    const match = items.find((item) => item.type === type);
     if (match) return match;
   }
-  return videos[0] ?? null;
+  return items.find((item) => item.kind === 'youtube') ?? items[0] ?? null;
 }
 
 export function watchlistKey() {
@@ -155,6 +200,7 @@ export function toggleWatchlist(filmId: number) {
     ? current.filter((id) => id !== filmId)
     : [...current, filmId];
   localStorage.setItem(watchlistKey(), JSON.stringify(next));
+  window.dispatchEvent(new Event('videohost-watchlist-change'));
   return next;
 }
 

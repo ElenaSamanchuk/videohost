@@ -25,12 +25,12 @@ export function HeroSpotlight({ film }: Props) {
           {film.year ?? '—'} · {formatGenres(film.genres)}
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link to={`/watch/${film.filmId}`} className="btn-primary">
-            ▶ Смотреть трейлер
-          </Link>
-          <Link to={`/watch/${film.filmId}#where-to-watch`} className="btn-secondary">
-            Где смотреть полностью
-          </Link>
+            <Link to={`/watch/${film.filmId}`} className="btn-primary">
+              ▶ Смотреть
+            </Link>
+            <Link to={`/watch/${film.filmId}`} className="btn-secondary">
+              Трейлеры
+            </Link>
         </div>
       </div>
     </section>

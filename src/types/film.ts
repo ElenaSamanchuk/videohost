@@ -19,8 +19,6 @@ export type FilmDetails = FilmPreview & {
   webUrl?: string;
   filmLength?: number;
   slogan?: string;
-  ratingKinopoisk?: number;
-  ratingImdb?: number;
 };
 
 export type RawVideoItem = {
@@ -30,18 +28,27 @@ export type RawVideoItem = {
   filmVideoType?: string;
 };
 
-export type FilmVideo = {
+export type MediaKind = 'youtube' | 'native';
+
+export type MediaItem = {
   id: string;
   title: string;
   url: string;
+  kind: MediaKind;
   embedUrl: string | null;
+  streamUrl: string | null;
   type: string;
   typeLabel: string;
   site: string;
+  source?: 'kinopoisk' | 'archive' | 'commons';
 };
 
-export type TopFilmsResponse = { films: FilmPreview[] };
-export type SearchFilmsResponse = { films: FilmPreview[]; keyword?: string };
-export type VideosResponse = { items?: RawVideoItem[] };
+export type FilmStream = {
+  id: string;
+  title: string;
+  source: 'archive' | 'native' | 'commons';
+  streamUrl: string;
+  posterUrl?: string;
+};
 
-export type CatalogMode = 'popular' | 'search';
+export type WatchMode = 'film' | 'clips';

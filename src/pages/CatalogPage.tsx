@@ -31,8 +31,8 @@ export function CatalogPage() {
               </h2>
               <p className="text-sm text-muted mt-1">
                 {isSearch
-                  ? `Запрос «${keyword}» · трейлеры и карточки Kinopoisk`
-                  : 'Популярные фильмы · откройте, чтобы посмотреть трейлер'}
+                  ? `Запрос «${keyword}» · смотрите на сайте`
+                  : 'Популярные фильмы · фильм и трейлеры без перехода на другие сервисы'}
               </p>
             </div>
             <p className="text-sm text-muted">

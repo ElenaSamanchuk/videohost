@@ -1,16 +1,29 @@
-import type { FilmVideo } from '../types/film';
+import type { MediaItem } from '../types/film';
+
+function sourceName(video: MediaItem) {
+  switch (video.source) {
+    case 'archive':
+      return 'Archive';
+    case 'commons':
+      return 'Wikimedia';
+    case 'kinopoisk':
+      return video.kind === 'youtube' ? 'YouTube' : 'MP4';
+    default:
+      return video.kind === 'youtube' ? 'YouTube' : 'MP4';
+  }
+}
 
 type Props = {
-  videos: FilmVideo[];
+  videos: MediaItem[];
   activeId: string | null;
-  onSelect: (video: FilmVideo) => void;
+  onSelect: (video: MediaItem) => void;
 };
 
 export function VideoPlaylist({ videos, activeId, onSelect }: Props) {
   if (!videos.length) {
     return (
       <div className="info-panel text-sm text-muted">
-        Для этого фильма нет встроенных роликов. Используйте блок «Где смотреть полностью».
+        Для этого фильма пока нет роликов. Ищем в открытых архивах...
       </div>
     );
   }
@@ -29,7 +42,7 @@ export function VideoPlaylist({ videos, activeId, onSelect }: Props) {
           </button>
         ))}
       </div>
-      <div className="grid gap-2">
+      <div className="grid gap-2 max-h-72 overflow-y-auto">
         {videos.map((video) => (
           <button
             key={`row-${video.id}`}
@@ -42,7 +55,9 @@ export function VideoPlaylist({ videos, activeId, onSelect }: Props) {
             }`}
           >
             <p className="text-sm font-medium">{video.title}</p>
-            <p className="text-xs text-muted mt-1">{video.typeLabel} · YouTube</p>
+            <p className="text-xs text-muted mt-1">
+              {video.typeLabel} · {sourceName(video)}
+            </p>
           </button>
         ))}
       </div>
