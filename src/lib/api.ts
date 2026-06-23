@@ -215,6 +215,13 @@ export function readWatchlist(): number[] {
   }
 }
 
+export function removeFromWatchlist(filmId: number) {
+  const next = readWatchlist().filter((id) => id !== filmId);
+  localStorage.setItem(watchlistKey(), JSON.stringify(next));
+  window.dispatchEvent(new Event('videohost-watchlist-change'));
+  return next;
+}
+
 export function toggleWatchlist(filmId: number) {
   const current = readWatchlist();
   const next = current.includes(filmId)

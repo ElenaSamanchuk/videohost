@@ -1,18 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { FilmCard } from '../components/FilmCard';
-import { fetchFilmDetails, filmTitle } from '../lib/api';
+import { fetchFilmDetails } from '../lib/api';
 import { useWatchlist } from '../hooks/useWatchlist';
+import type { FilmDetails } from '../types/film';
 
 export function WatchlistPage() {
   const { ids, remove, count } = useWatchlist();
+  const queryClient = useQueryClient();
 
   const filmsQuery = useQuery({
     queryKey: ['watchlist', ids.join(',')],
     queryFn: async () => {
       const results = await Promise.allSettled(ids.map((id) => fetchFilmDetails(id)));
       return results
-        .filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof fetchFilmDetails>>> => {
+        .filter((result): result is PromiseFulfilledResult<FilmDetails> => {
           return result.status === 'fulfilled';
         })
         .map((result) => result.value);
@@ -20,7 +22,14 @@ export function WatchlistPage() {
     enabled: ids.length > 0,
   });
 
-  const films = filmsQuery.data ?? [];
+  const filmsById = new Map((filmsQuery.data ?? []).map((film) => [film.filmId, film]));
+
+  const handleRemove = (filmId: number) => {
+    queryClient.setQueryData<FilmDetails[]>(['watchlist', ids.join(',')], (current) =>
+      current?.filter((film) => film.filmId !== filmId),
+    );
+    remove(filmId);
+  };
 
   return (
     <main className="pt-24 sm:pt-28 pb-16">
@@ -48,7 +57,7 @@ export function WatchlistPage() {
               Перейти в каталог
             </Link>
           </div>
-        ) : filmsQuery.isLoading ? (
+        ) : filmsQuery.isLoading && !filmsQuery.data ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
             {ids.map((id) => (
               <div key={id} className="rounded-2xl bg-elevated ring-1 ring-line aspect-[2/3] animate-pulse" />
@@ -56,28 +65,35 @@ export function WatchlistPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
-            {films.map((film) => (
-              <div key={film.filmId} className="relative group">
-                <FilmCard film={film} />
-                <button
-                  type="button"
-                  className="absolute top-3 right-3 z-10 rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-zinc-100 ring-1 ring-white/15 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    remove(film.filmId);
-                  }}
-                  aria-label={`Убрать «${filmTitle(film)}» из списка`}
-                >
-                  Убрать
-                </button>
-              </div>
-            ))}
+            {ids.map((id) => {
+              const film = filmsById.get(id);
+
+              if (film) {
+                return <FilmCard key={id} film={film} onRemove={handleRemove} />;
+              }
+
+              return (
+                <div key={id} className="relative rounded-2xl bg-elevated ring-1 ring-line aspect-[2/3] flex flex-col">
+                  <div className="flex-1 flex items-center justify-center px-4 text-center text-xs text-muted">
+                    Не удалось загрузить карточку
+                  </div>
+                  <button
+                    type="button"
+                    className="m-3 rounded-full bg-black/80 px-3 py-2 text-xs font-medium text-zinc-100 ring-1 ring-white/20 hover:bg-rose-950/90"
+                    onClick={() => handleRemove(id)}
+                  >
+                    Убрать из списка
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {count > 0 && !filmsQuery.isLoading && films.length < count ? (
+        {count > 0 && filmsQuery.isSuccess && filmsById.size < count ? (
           <p className="text-xs text-muted">
-            Некоторые сохранённые фильмы не удалось загрузить — возможно, они больше недоступны в API.
+            {count - filmsById.size} сохранённых фильмов не удалось загрузить из API — их всё равно можно убрать из
+            списка.
           </p>
         ) : null}
       </div>

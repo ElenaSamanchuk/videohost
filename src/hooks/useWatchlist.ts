@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { readWatchlist, toggleWatchlist as toggleInStorage } from '../lib/api';
+import { readWatchlist, removeFromWatchlist, toggleWatchlist as toggleInStorage } from '../lib/api';
 
 export function useWatchlist() {
   const [ids, setIds] = useState<number[]>(() => readWatchlist());
@@ -20,8 +20,7 @@ export function useWatchlist() {
   }, []);
 
   const remove = useCallback((filmId: number) => {
-    if (!readWatchlist().includes(filmId)) return;
-    toggleInStorage(filmId);
+    removeFromWatchlist(filmId);
     setIds(readWatchlist());
   }, []);
 
