@@ -1,3 +1,4 @@
+import react from '@vitejs/plugin-react';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
 import { defineConfig } from 'vite';
@@ -9,6 +10,7 @@ function pagesBase() {
 }
 
 export default defineConfig(({ command }) => ({
+  plugins: [react()],
   base: command === 'serve' ? '/' : pagesBase(),
   css: {
     postcss: {

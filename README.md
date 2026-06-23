@@ -1,28 +1,28 @@
 # Videohost
 
-Кинопортал на Kinopoisk Unofficial API: каталог, поиск, карточка фильма и **просмотр трейлера** в модалке.
+Современный кинопортал на **React + Vite + TanStack Query + Tailwind**.
 
 **Live:** [elenasamanchuk.github.io/videohost](https://elenasamanchuk.github.io/videohost/)
+
+## UX
+
+- **Каталог** — hero с топ-фильмом, сетка карточек, поиск
+- **Страница просмотра** — кинотеатральный плеер, плейлист роликов (трейлер / тизер / клип)
+- **Где смотреть полностью** — переход на Kinopoisk для лицензионного просмотра
+
+На сайте встроены **трейлеры и ролики** из Kinopoisk API (YouTube). Полные фильмы API не отдаёт — для них блок «Где смотреть».
 
 ## Run locally
 
 ```bash
 cp .env.example .env
-# add your Kinopoisk API key to .env
 npm install
 npm run dev
 ```
 
-→ http://127.0.0.1:5181/
+## Stack
 
-## Features
-
-- Top popular films grid
-- Search by title
-- Film details modal with description
-- Embedded YouTube trailer when available
-- Link to Kinopoisk page
-
-## Deploy
-
-Set repository secret `KINOPOISK_API_KEY`, then push to `main`.
+- React 18 + React Router
+- TanStack Query
+- Tailwind CSS 3
+- Kinopoisk Unofficial API

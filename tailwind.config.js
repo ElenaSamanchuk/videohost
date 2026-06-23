@@ -1,18 +1,23 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./*.html', './src/**/*.{js,html}'],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       colors: {
-        page: '#09090b',
-        surface: '#18181b',
-        ink: '#fafafa',
-        muted: '#a1a1aa',
-        line: '#3f3f46',
-        accent: '#e11d48',
+        page: 'var(--color-page)',
+        surface: 'var(--color-surface)',
+        elevated: 'var(--color-elevated)',
+        ink: 'var(--color-ink)',
+        muted: 'var(--color-muted)',
+        line: 'var(--color-line)',
+        accent: 'var(--color-accent)',
+        'accent-soft': 'var(--color-accent-soft)',
+      },
+      boxShadow: {
+        glow: '0 0 40px var(--color-glow)',
       },
     },
   },

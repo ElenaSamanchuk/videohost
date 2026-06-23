@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-page: #07070a;
+  --color-surface: #111116;
+  --color-elevated: #18181f;
+  --color-ink: #f4f4f5;
+  --color-muted: #a1a1aa;
+  --color-line: rgba(255 255 255 / 0.08);
+  --color-accent: #8b5cf6;
+  --color-accent-soft: rgba(139 92 246 / 0.16);
+  --color-glow: rgba(139 92 246 / 0.25);
+  --color-ring-focus: rgba(139 92 246 / 0.45);
+  --color-ring-hover: rgba(139 92 246 / 0.35);
+  --header-offset: 5rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-page text-ink font-sans antialiased min-h-screen;
+  }
+}
+
+@layer components {
+  .page-wrap {
+    @apply max-w-7xl mx-auto px-4 sm:px-6;
+  }
+
+  .glass-bar {
+    @apply backdrop-blur-xl ring-1 ring-line shadow-lg;
+    background-color: rgb(7 7 10 / 0.78);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 disabled:opacity-40 disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-white px-5 py-2.5 text-sm rounded-full hover:brightness-110 active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply btn bg-elevated text-ink px-5 py-2.5 text-sm rounded-full ring-1 ring-line hover:bg-surface;
+  }
+
+  .btn-ghost {
+    @apply btn text-muted px-3 py-2 text-sm rounded-xl hover:text-ink hover:bg-elevated;
+  }
+
+  .input-field {
+    @apply w-full bg-elevated text-ink placeholder:text-muted px-4 py-2.5 text-sm rounded-xl ring-1 ring-line outline-none focus:ring-2 focus:ring-[color:var(--color-ring-focus)];
+  }
+
+  .filter-chip {
+    @apply shrink-0 px-4 py-2 text-sm font-medium rounded-full ring-1 ring-line text-muted transition-all hover:text-ink hover:bg-elevated;
+  }
+
+  .filter-chip.is-active {
+    @apply bg-accent text-white ring-accent shadow-glow;
+  }
+
+  .film-card {
+    @apply relative overflow-hidden rounded-2xl bg-elevated ring-1 ring-line transition-all duration-300 hover:-translate-y-1 hover:ring-[color:var(--color-ring-hover)] hover:shadow-glow;
+  }
+
+  .film-card__poster {
+    @apply aspect-[2/3] w-full object-cover bg-surface;
+  }
+
+  .film-card__overlay {
+    @apply absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 transition-opacity;
+  }
+
+  .film-card:hover .film-card__overlay {
+    @apply opacity-100;
+  }
+
+  .film-card__play {
+    @apply absolute inset-0 flex items-center justify-center opacity-0 transition-opacity;
+  }
+
+  .film-card:hover .film-card__play {
+    @apply opacity-100;
+  }
+
+  .rating-badge {
+    @apply absolute top-3 left-3 min-w-[2rem] h-8 px-2 rounded-full text-xs font-bold flex items-center justify-center backdrop-blur bg-black/60 ring-1;
+  }
+
+  .rating-badge--high {
+    @apply text-emerald-300 ring-emerald-400/40;
+  }
+
+  .rating-badge--mid {
+    @apply text-amber-300 ring-amber-400/40;
+  }
+
+  .rating-badge--low {
+    @apply text-rose-300 ring-rose-400/40;
+  }
+
+  .player-shell {
+    @apply relative overflow-hidden rounded-3xl bg-black ring-1 ring-line shadow-2xl;
+  }
+
+  .player-shell::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none ring-1 ring-inset ring-white/5 rounded-3xl;
+  }
+
+  .video-tab {
+    @apply shrink-0 px-4 py-2 rounded-full text-sm font-medium ring-1 ring-line text-muted transition-all hover:text-ink;
+  }
+
+  .video-tab.is-active {
+    @apply bg-accent-soft text-ink ring-[color:var(--color-ring-hover)];
+  }
+
+  .info-panel {
+    @apply rounded-2xl bg-elevated ring-1 ring-line p-5 sm:p-6;
+  }
+}
