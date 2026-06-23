@@ -33,6 +33,7 @@ jobs:
         env:
           GITHUB_PAGES_BASE: /${{ github.event.repository.name }}/
           VITE_KINOPOISK_API_KEY: ${{ secrets.KINOPOISK_API_KEY }}
+          VITE_TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: npm run build:pages
 
       - uses: actions/upload-pages-artifact@v3

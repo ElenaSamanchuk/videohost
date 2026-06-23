@@ -24,10 +24,21 @@ async function kinopoiskFetch<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function fetchTopFilms(page = 1) {
+export function fetchTopFilms(page = 1, type = 'TOP_250_BEST_FILMS') {
   return kinopoiskFetch<{ films: FilmPreview[] }>(
-    `/api/v2.2/films/top?type=TOP_100_POPULAR_FILMS&page=${page}`,
+    `/api/v2.2/films/top?type=${type}&page=${page}`,
   );
+}
+
+export const FEATURED_FILM_IDS = [
+  301, 326, 349, 472, 381, 7077, 258687, 464963, 840818, 111543, 435, 351, 328, 450487, 537951,
+];
+
+export async function fetchFeaturedFilms() {
+  const results = await Promise.allSettled(FEATURED_FILM_IDS.map((id) => fetchFilmDetails(id)));
+  return results
+    .filter((result): result is PromiseFulfilledResult<FilmDetails> => result.status === 'fulfilled')
+    .map((result) => result.value);
 }
 
 export function searchFilms(keyword: string) {

@@ -40,7 +40,7 @@ export type MediaItem = {
   type: string;
   typeLabel: string;
   site: string;
-  source?: 'kinopoisk' | 'archive' | 'commons';
+  source?: 'kinopoisk' | 'archive' | 'commons' | 'tmdb' | 'curated';
 };
 
 export type FilmStream = {

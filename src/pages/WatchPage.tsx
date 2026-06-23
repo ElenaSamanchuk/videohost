@@ -1,18 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MediaPlayer } from '../components/MediaPlayer';
 import { VideoPlaylist } from '../components/VideoPlaylist';
-import { findAlternativeClips, findFallbackNativeStream, findFullFilmStream } from '../lib/archive';
+import { findFallbackNativeStream, findFullFilmStream } from '../lib/archive';
+import { discoverClips } from '../lib/discover-clips';
 import {
   fetchFilmDetails,
   fetchFilmVideos,
-  filmSearchTitles,
   filmTitle,
   formatCountries,
   formatGenres,
   isInWatchlist,
-  normalizeMediaItems,
   pickDefaultClip,
   ratingTone,
   toggleWatchlist,
@@ -38,39 +37,31 @@ export function WatchPage() {
     enabled: Boolean(filmId),
   });
 
-  const kinopoiskClips = useMemo(
-    () => normalizeMediaItems(videosQuery.data?.items),
-    [videosQuery.data?.items],
-  );
-
   const film = filmQuery.data;
-  const title = film ? filmTitle(film) : 'Фильм';
-  const searchTitles = film ? filmSearchTitles(film) : [];
-  const needsAlternatives = !videosQuery.isLoading && kinopoiskClips.length === 0;
 
-  const alternativesQuery = useQuery({
-    queryKey: ['alt-clips', filmId, searchTitles.join('|'), film?.year],
-    queryFn: () => findAlternativeClips(searchTitles, film!.year),
-    enabled: Boolean(film) && needsAlternatives,
-    staleTime: 1000 * 60 * 30,
+  const clipsQuery = useQuery({
+    queryKey: ['clips', filmId, film?.year, videosQuery.dataUpdatedAt],
+    queryFn: () => discoverClips(numericId, film!, videosQuery.data?.items ?? []),
+    enabled: Boolean(film) && !videosQuery.isLoading,
+    staleTime: 1000 * 60 * 15,
   });
 
-  const allClips = useMemo(() => {
-    if (kinopoiskClips.length) return kinopoiskClips;
-    return alternativesQuery.data ?? [];
-  }, [kinopoiskClips, alternativesQuery.data]);
-
-  const usingAlternatives = kinopoiskClips.length === 0 && allClips.length > 0;
+  const allClips = clipsQuery.data ?? [];
+  const title = film ? filmTitle(film) : 'Фильм';
+  const usingFallback =
+    allClips.length > 0 &&
+    !allClips.some((clip) => clip.source === 'kinopoisk');
 
   const filmStreamQuery = useQuery({
-    queryKey: ['film-stream', filmId, film?.year, searchTitles.join('|'), allClips.length],
+    queryKey: ['film-stream', filmId, film?.year, allClips.length],
     queryFn: async () => {
       if (!Number.isFinite(numericId) || !film) return null;
-      const archive = await findFullFilmStream(numericId, searchTitles, film.year);
+      const titles = [film.nameEn, film.nameOriginal, film.nameRu].filter(Boolean) as string[];
+      const archive = await findFullFilmStream(numericId, titles, film.year);
       if (archive) return archive;
       return findFallbackNativeStream(allClips);
     },
-    enabled: Boolean(film) && !videosQuery.isLoading && (!needsAlternatives || alternativesQuery.isFetched),
+    enabled: Boolean(film) && clipsQuery.isSuccess,
     staleTime: 1000 * 60 * 30,
     retry: false,
   });
@@ -80,7 +71,10 @@ export function WatchPage() {
       setActiveClip(null);
       return;
     }
-    setActiveClip((current) => current ?? pickDefaultClip(allClips));
+    setActiveClip((current) => {
+      if (current && allClips.some((clip) => clip.id === current.id)) return current;
+      return pickDefaultClip(allClips);
+    });
   }, [allClips]);
 
   useEffect(() => {
@@ -95,16 +89,10 @@ export function WatchPage() {
     }
   }, [watchMode, filmStreamQuery.isLoading, filmStreamQuery.data, allClips.length]);
 
-  useEffect(() => {
-    if (allClips.length && watchMode === 'clips' && !activeClip) {
-      setActiveClip(pickDefaultClip(allClips));
-    }
-  }, [allClips, watchMode, activeClip]);
-
   const tone = ratingTone(film?.rating);
   const filmStream = filmStreamQuery.data ?? null;
   const isOpenFilm = filmStream?.source === 'archive' || filmStream?.source === 'commons';
-  const clipsLoading = videosQuery.isLoading || (needsAlternatives && alternativesQuery.isLoading);
+  const clipsLoading = videosQuery.isLoading || clipsQuery.isLoading;
 
   if (filmQuery.isLoading) {
     return (
@@ -202,9 +190,9 @@ export function WatchPage() {
               </p>
             ) : null}
 
-            {usingAlternatives ? (
+            {usingFallback ? (
               <p className="text-xs text-muted">
-                В Kinopoisk API нет роликов — подобраны видео из открытых источников (Archive, Wikimedia).
+                Трейлеры подобраны из TMDB и открытых источников — в Kinopoisk API для этого фильма мало роликов.
               </p>
             ) : null}
 
@@ -242,9 +230,7 @@ export function WatchPage() {
               <div className="info-panel space-y-3">
                 <h2 className="text-sm font-semibold">Ролики</h2>
                 <p className="text-xs text-muted">
-                  {usingAlternatives
-                    ? 'Открытые источники без рекламы: Internet Archive и Wikimedia Commons.'
-                    : 'Трейлеры, тизеры и MP4-ролики из Kinopoisk API.'}
+                  Kinopoisk API · TMDB · подборка трейлеров · Wikimedia для классики.
                 </p>
                 {clipsLoading ? (
                   <div className="h-32 rounded-2xl bg-surface animate-pulse" />
@@ -253,8 +239,7 @@ export function WatchPage() {
                 )}
                 {!clipsLoading && !allClips.length ? (
                   <p className="text-xs text-muted">
-                    Ничего не найдено ни в API, ни в открытых архивах. Попробуйте другой фильм из каталога
-                    классики.
+                    Трейлер не найден. Попробуйте раздел «Смотреть сейчас» на главной или классику вроде «Матрицы».
                   </p>
                 ) : null}
               </div>

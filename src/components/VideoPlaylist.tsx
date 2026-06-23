@@ -6,6 +6,10 @@ function sourceName(video: MediaItem) {
       return 'Archive';
     case 'commons':
       return 'Wikimedia';
+    case 'tmdb':
+      return 'TMDB';
+    case 'curated':
+      return 'YouTube';
     case 'kinopoisk':
       return video.kind === 'youtube' ? 'YouTube' : 'MP4';
     default:
@@ -23,7 +27,7 @@ export function VideoPlaylist({ videos, activeId, onSelect }: Props) {
   if (!videos.length) {
     return (
       <div className="info-panel text-sm text-muted">
-        Для этого фильма пока нет роликов. Ищем в открытых архивах...
+        Для этого фильма пока нет роликов. Ищем трейлеры...
       </div>
     );
   }
