@@ -114,14 +114,17 @@ export function youtubeEmbedUrl(url: string, autoplay = false) {
   const id = extractYoutubeId(url);
   if (!id) return null;
 
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const params = new URLSearchParams({
     rel: '0',
     modestbranding: '1',
     playsinline: '1',
+    enablejsapi: '1',
+    ...(origin ? { origin } : {}),
     ...(autoplay ? { autoplay: '1' } : {}),
   });
 
-  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
+  return `https://www.youtube.com/embed/${id}?${params.toString()}`;
 }
 
 function isNativeStreamUrl(url: string) {
@@ -173,10 +176,17 @@ export function normalizeMediaItems(items: RawVideoItem[] = []): MediaItem[] {
 export function pickDefaultClip(items: MediaItem[]) {
   const priority = ['TRAILER', 'TEASER', 'FEATURETTE', 'CLIP', 'VIDEO'];
   for (const type of priority) {
-    const match = items.find((item) => item.type === type);
+    const match = items.find((item) => item.type === type && item.kind === 'native' && item.streamUrl);
     if (match) return match;
   }
-  return items.find((item) => item.kind === 'youtube') ?? items[0] ?? null;
+  for (const type of priority) {
+    const match = items.find((item) => item.type === type && item.embedUrl);
+    if (match) return match;
+  }
+  return items.find((item) => item.kind === 'native' && item.streamUrl)
+    ?? items.find((item) => item.embedUrl)
+    ?? items[0]
+    ?? null;
 }
 
 export function watchlistKey() {

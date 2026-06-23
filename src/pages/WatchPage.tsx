@@ -22,7 +22,7 @@ import type { MediaItem, WatchMode } from '../types/film';
 export function WatchPage() {
   const { filmId = '' } = useParams();
   const numericId = Number(filmId);
-  const [watchMode, setWatchMode] = useState<WatchMode>('film');
+  const [watchMode, setWatchMode] = useState<WatchMode>('clips');
   const [activeClip, setActiveClip] = useState<MediaItem | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -70,8 +70,9 @@ export function WatchPage() {
       if (archive) return archive;
       return findFallbackNativeStream(allClips);
     },
-    enabled: Boolean(film) && !videosQuery.isLoading && !alternativesQuery.isFetching,
+    enabled: Boolean(film) && !videosQuery.isLoading && (!needsAlternatives || alternativesQuery.isFetched),
     staleTime: 1000 * 60 * 30,
+    retry: false,
   });
 
   useEffect(() => {
@@ -93,6 +94,12 @@ export function WatchPage() {
       setWatchMode('clips');
     }
   }, [watchMode, filmStreamQuery.isLoading, filmStreamQuery.data, allClips.length]);
+
+  useEffect(() => {
+    if (allClips.length && watchMode === 'clips' && !activeClip) {
+      setActiveClip(pickDefaultClip(allClips));
+    }
+  }, [allClips, watchMode, activeClip]);
 
   const tone = ratingTone(film?.rating);
   const filmStream = filmStreamQuery.data ?? null;

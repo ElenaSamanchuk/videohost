@@ -1,4 +1,5 @@
 import type { MediaItem } from '../types/film';
+import { fetchWithTimeout } from './fetch';
 
 type CommonsVideoInfo = {
   canonicaltitle?: string;
@@ -36,7 +37,7 @@ export async function findCommonsClips(title: string, year?: number): Promise<Me
   url.searchParams.set('format', 'json');
   url.searchParams.set('origin', '*');
 
-  const response = await fetch(url.toString());
+  const response = await fetchWithTimeout(url.toString(), { timeoutMs: 5000 });
   if (!response.ok) return [];
 
   const data = (await response.json()) as CommonsSearchResponse;

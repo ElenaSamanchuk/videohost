@@ -1,5 +1,6 @@
 import type { FilmStream, MediaItem } from '../types/film';
 import { findCommonsClips } from './commons';
+import { fetchWithTimeout } from './fetch';
 
 type ArchiveDoc = {
   identifier: string;
@@ -13,19 +14,38 @@ type ArchiveFile = {
   size?: string;
 };
 
-const CURATED_FILMS: Record<number, string> = {
-  301: 'The_Matrix_1999',
-  328: 'night_of_the_living_dead',
-  351: 'nosferatu_1922',
-  444: 'metropolis1926',
-  8124: 'charlie_chaplin_modern_times',
-  679486: 'His_Girl_Friday_1940',
-  462: 'the_general_1926_buster_keaton',
+type CuratedEntry = {
+  streamUrl: string;
+  title: string;
+  source: FilmStream['source'];
+};
+
+const CURATED_STREAMS: Record<number, CuratedEntry> = {
+  351: {
+    streamUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/78/Nosferatu_%281922%29.webm',
+    title: 'Nosferatu (1922)',
+    source: 'commons',
+  },
+  328: {
+    streamUrl: 'https://archive.org/download/night_of_the_living_dead/night_of_the_living_dead_512kb.mp4',
+    title: 'Night of the Living Dead',
+    source: 'archive',
+  },
+  444: {
+    streamUrl: 'https://archive.org/download/metropolis1926/Metropolis.1927.512kb.mp4',
+    title: 'Metropolis',
+    source: 'archive',
+  },
+  8124: {
+    streamUrl: 'https://archive.org/download/CC_1916_12_05_TheRink/512kb.mp4',
+    title: 'Modern Times',
+    source: 'archive',
+  },
 };
 
 const FULL_FILM_MIN_BYTES = 120_000_000;
 
-async function searchArchiveDocs(query: string, rows = 8): Promise<ArchiveDoc[]> {
+async function searchArchiveDocs(query: string, rows = 5): Promise<ArchiveDoc[]> {
   const url = new URL('https://archive.org/advancedsearch.php');
   url.searchParams.set('q', query);
   url.searchParams.append('fl[]', 'identifier');
@@ -34,7 +54,7 @@ async function searchArchiveDocs(query: string, rows = 8): Promise<ArchiveDoc[]>
   url.searchParams.set('rows', String(rows));
   url.searchParams.set('output', 'json');
 
-  const response = await fetch(url.toString());
+  const response = await fetchWithTimeout(url.toString(), { timeoutMs: 4000 });
   if (!response.ok) return [];
 
   const data = (await response.json()) as { response?: { docs?: ArchiveDoc[] } };
@@ -46,9 +66,7 @@ function archiveQueries(title: string, year?: number) {
   const withYear = year ? ` AND year:${year}` : '';
   return [
     `title:"${escaped}" AND mediatype:movies${withYear}`,
-    `title:"${escaped}" AND mediatype:movies AND subject:trailer${withYear}`,
     `title:"${escaped}" trailer AND mediatype:movies`,
-    `title:"${escaped}" AND mediatype:movies`,
   ];
 }
 
@@ -63,14 +81,14 @@ function archiveFileLabel(fileName: string, size: number, docTitle: string) {
 }
 
 async function listArchiveMediaItems(identifier: string, docTitle: string): Promise<MediaItem[]> {
-  const response = await fetch(`https://archive.org/metadata/${identifier}`);
+  const response = await fetchWithTimeout(`https://archive.org/metadata/${identifier}`, { timeoutMs: 4000 });
   if (!response.ok) return [];
 
   const data = (await response.json()) as { files?: ArchiveFile[] };
   const files = (data.files ?? [])
     .filter((file) => /\.(mp4|mov|webm)$/i.test(file.name) && !/\.torrent$/i.test(file.name))
     .sort((a, b) => Number(b.size ?? 0) - Number(a.size ?? 0))
-    .slice(0, 4);
+    .slice(0, 3);
 
   return files.map((file) => {
     const size = Number(file.size ?? 0);
@@ -125,30 +143,29 @@ function dedupeMediaItems(items: MediaItem[]) {
   });
 }
 
+function curatedStream(filmId: number): FilmStream | null {
+  const entry = CURATED_STREAMS[filmId];
+  if (!entry) return null;
+
+  return {
+    id: `curated-${filmId}`,
+    title: entry.title,
+    source: entry.source,
+    streamUrl: entry.streamUrl,
+  };
+}
+
 export async function findFullFilmStream(
   filmId: number,
   titles: string[],
   year?: number,
 ): Promise<FilmStream | null> {
-  const curated = CURATED_FILMS[filmId];
-  if (curated) {
-    const stream = await resolveArchiveStream(curated, 'Полный фильм');
-    if (stream) return stream;
-  }
-
-  for (const title of titles) {
-    for (const query of archiveQueries(title, year)) {
-      const docs = await searchArchiveDocs(query, 6);
-      for (const doc of docs) {
-        const stream = await resolveArchiveStream(doc.identifier, doc.title ?? title);
-        if (stream) return stream;
-      }
-    }
-  }
+  const curated = curatedStream(filmId);
+  if (curated) return curated;
 
   for (const title of titles) {
     const commons = await findCommonsClips(title, year);
-    const full = commons.find((clip) => (clip.streamUrl?.length ?? 0) > 0);
+    const full = commons.find((clip) => clip.streamUrl);
     if (full?.streamUrl) {
       return {
         id: full.id,
@@ -159,6 +176,16 @@ export async function findFullFilmStream(
     }
   }
 
+  for (const title of titles) {
+    for (const query of archiveQueries(title, year)) {
+      const docs = await searchArchiveDocs(query, 4);
+      for (const doc of docs) {
+        const stream = await resolveArchiveStream(doc.identifier, doc.title ?? title);
+        if (stream) return stream;
+      }
+    }
+  }
+
   return null;
 }
 
@@ -166,16 +193,16 @@ export async function findAlternativeClips(titles: string[], year?: number): Pro
   const collected: MediaItem[] = [];
 
   for (const title of titles) {
+    const commons = await findCommonsClips(title, year);
+    collected.push(...commons);
+
     for (const query of archiveQueries(title, year)) {
-      const docs = await searchArchiveDocs(query, 5);
+      const docs = await searchArchiveDocs(query, 3);
       for (const doc of docs) {
         const items = await listArchiveMediaItems(doc.identifier, doc.title ?? title);
         collected.push(...items);
       }
     }
-
-    const commons = await findCommonsClips(title, year);
-    collected.push(...commons);
   }
 
   return dedupeMediaItems(collected).sort((a, b) => {
@@ -185,15 +212,13 @@ export async function findAlternativeClips(titles: string[], year?: number): Pro
   });
 }
 
-export async function findFallbackNativeStream(
-  clips: { streamUrl: string | null; title: string; id?: string; source?: MediaItem['source'] }[],
-): Promise<FilmStream | null> {
-  const full = clips.find((clip) => clip.streamUrl && clip.source === 'archive');
+export async function findFallbackNativeStream(clips: MediaItem[]): Promise<FilmStream | null> {
+  const full = clips.find((clip) => clip.type === 'VIDEO' && clip.streamUrl);
   if (full?.streamUrl) {
     return {
-      id: full.id ?? 'archive-fallback',
+      id: full.id ?? 'clip-full',
       title: full.title,
-      source: 'archive',
+      source: full.source === 'commons' ? 'commons' : full.source === 'archive' ? 'archive' : 'native',
       streamUrl: full.streamUrl,
     };
   }
@@ -204,7 +229,7 @@ export async function findFallbackNativeStream(
   return {
     id: native.id ?? 'native-fallback',
     title: native.title,
-    source: native.source === 'commons' ? 'commons' : 'native',
+    source: native.source === 'commons' ? 'commons' : native.source === 'archive' ? 'archive' : 'native',
     streamUrl: native.streamUrl,
   };
 }
