@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Videohost — поиск фильмов и просмотр трейлеров." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <title>Videohost — кино</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="page-wrap py-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+        <div>
+          <p class="text-lg font-semibold tracking-tight">Videohost</p>
+          <p class="text-sm text-muted">Каталог и трейлеры · Kinopoisk API</p>
+        </div>
+        <form id="searchForm" class="flex gap-2 w-full sm:w-auto">
+          <input id="searchInput" type="search" class="search-field" placeholder="Название фильма..." autocomplete="off" />
+        </form>
+      </div>
+    </header>
+
+    <main class="page-wrap py-8 pb-16">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+        <div>
+          <h1 id="sectionTitle" class="text-2xl sm:text-3xl font-semibold tracking-tight">Популярное</h1>
+          <p id="sectionHint" class="text-sm text-muted mt-1">Топ фильмов по рейтингу Kinopoisk</p>
+        </div>
+        <p id="statusLine" class="text-sm text-muted">Загрузка...</p>
+      </div>
+
+      <div id="filmGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5"></div>
+    </main>
+
+    <div id="filmModal" class="hidden modal-backdrop" aria-hidden="true">
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

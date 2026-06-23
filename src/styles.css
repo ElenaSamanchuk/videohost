@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-page text-ink font-sans antialiased min-h-screen;
+  }
+}
+
+@layer components {
+  .page-wrap {
+    @apply max-w-6xl mx-auto px-4 sm:px-6;
+  }
+
+  .site-header {
+    @apply sticky top-0 z-40 border-b border-line/60 bg-page/90 backdrop-blur-xl;
+  }
+
+  .search-field {
+    @apply w-full sm:w-72 bg-surface text-ink placeholder:text-muted px-4 py-2.5 text-sm rounded-xl ring-1 ring-line outline-none focus:ring-2 focus:ring-accent/40;
+  }
+
+  .film-card {
+    @apply cursor-pointer rounded-2xl bg-surface ring-1 ring-line/80 overflow-hidden transition-all duration-300 hover:ring-accent/40 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30;
+  }
+
+  .film-card__poster {
+    @apply aspect-[2/3] w-full object-cover bg-zinc-800;
+  }
+
+  .film-card__body {
+    @apply p-4 space-y-1;
+  }
+
+  .film-card__title {
+    @apply text-sm font-semibold leading-snug line-clamp-2;
+  }
+
+  .film-card__meta {
+    @apply text-xs text-muted;
+  }
+
+  .rating-badge {
+    @apply absolute top-3 left-3 min-w-[2rem] h-8 px-2 rounded-full text-xs font-bold flex items-center justify-center bg-black/70 backdrop-blur;
+  }
+
+  .rating-badge--high {
+    @apply text-emerald-400 ring-1 ring-emerald-500/50;
+  }
+
+  .rating-badge--mid {
+    @apply text-amber-400 ring-1 ring-amber-500/50;
+  }
+
+  .rating-badge--low {
+    @apply text-rose-400 ring-1 ring-rose-500/50;
+  }
+
+  .filter-chip {
+    @apply px-4 py-2 text-sm font-medium rounded-full ring-1 ring-line text-muted transition-colors hover:text-ink;
+  }
+
+  .filter-chip.is-active {
+    @apply bg-accent text-white ring-accent;
+  }
+
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6;
+  }
+
+  .modal-panel {
+    @apply relative w-full max-w-5xl max-h-[94vh] overflow-auto rounded-t-3xl sm:rounded-3xl bg-surface ring-1 ring-line shadow-2xl;
+  }
+
+  .player-frame {
+    @apply relative w-full aspect-video bg-black rounded-2xl overflow-hidden ring-1 ring-line;
+  }
+
+  .player-frame iframe {
+    @apply absolute inset-0 w-full h-full border-0;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-accent text-white text-sm font-medium hover:bg-rose-600 transition-colors;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-full text-sm text-muted hover:text-ink hover:bg-line/40 transition-colors;
+  }
+}
